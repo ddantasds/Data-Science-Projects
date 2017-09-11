@@ -6,7 +6,28 @@ library(XML)
 library(ggmap)
 library(dplyr)
 library(lubridate)
+library(ggrepel)
 ```
+
+### Load Necessary Functions
+* **collectNBACalendar**: Function to gather from internet the NBA calendar for a specific year.
+* **earth.dist**: Given latitude and longitude for two points calculate the distance between them.
+* **nbaFlightsByTeam**: Returns a data frame with flights and the distance for a specific team during the season.
+
+
+```R
+source('NBA season calendar Functions.R')
+```
+
+    Warning message:
+    "package 'xml2' was built under R version 3.3.3"
+    Attaching package: 'rvest'
+    
+    The following object is masked from 'package:XML':
+    
+        xml
+    
+    
 
 # Overview
 
@@ -21,65 +42,14 @@ Can we optmize the NBA and provide a better with lower distance travel?
 
 # Data
 
-
-```R
-calendar<-data.frame("date"=as.character(),
-                     "time"=as.character(),
-                     "visitor"=as.character(),
-                     "visitor_pts"=as.numeric(),
-                     "home"=as.character(),
-                     "home_pts"=as.numeric())
-```
-
 ### Scrapping data from Internet
 
 Collecting the calendar from https://www.basketball-reference.com
 
 
 ```R
-months<-tolower(month.name)
-years<-2016
-
-for(j in 1:length(years)){
-  
-  url<-paste0("https://www.basketball-reference.com/leagues/NBA_",years[j],"_games-",months[1],".html")
-  html <- xml2::read_html(url)
-  node <- rvest::html_node(html, "table")
-  table <- rvest::html_table(node, header = TRUE)
-  table<-table[,1:6]
-  
-  names(table)<-c("date","time","visitor","visitor_pts","home","home_pts")
-  
-  for(i in 2:length(months)){
-    url<-url<-paste0("https://www.basketball-reference.com/leagues/NBA_",years[j],"_games-",months[i],".html")
-    if(url.exists(url)){
-      html <- xml2::read_html(url)
-      node <- rvest::html_node(html, "table")
-      aux <- rvest::html_table(node, header = TRUE)
-      aux<-aux[,1:6]
-      names(aux)<-c("date","time","visitor","visitor_pts","home","home_pts")
-      table<-rbind(table,aux)
-    }
-    else{
-      next
-    }
-  }
-  table$season<-years[j]
-  calendar<-rbind(calendar,table)
-}
+calendar<-collectNBACalendar(2016)
 ```
-
-
-```R
-calendar%>%
-  filter((home=="Los Angeles Lakers" | visitor=="Los Angeles Lakers"))%>%
-arrange(date2)%>%
-nrow()
-```
-
-
-82
-
 
 
 ```R
@@ -101,7 +71,7 @@ head(calendar)
 
 
 
-### Fixing date format
+### Transforming Date format
 
 
 ```R
@@ -129,11 +99,10 @@ calendar%>%
 
 
 
+### Filter Regular Season Games
 For this calendar there are playoffs games and we are not interested on playoffs once we are evaluating the distance traveled during the regular season.
 
 The 2015-16 season ranged from 10-27-2015 to 04-13-2016 (https://en.wikipedia.org/wiki/2015%E2%80%9316_NBA_season)
-
-### Filter Regular Season Games
 
 
 ```R
@@ -143,7 +112,7 @@ calendar<-calendar%>%
 
 
 ```R
-# Check if every team have 82 games
+# Quick check: Every team must have 82 games
 sapply(unique(calendar$home),
        function(x) calendar%>%
   filter((home==x | visitor==x))%>%
@@ -291,33 +260,33 @@ citiesLocation<-data.frame(cities,pos)
 
     Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Atlanta&sensor=false
     Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Chicago&sensor=false
-    Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=San+Francisco&sensor=false
+    Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=San%20Francisco&sensor=false
     Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Boston&sensor=false
     Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Brooklyn&sensor=false
     Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Detroit&sensor=false
     Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Houston&sensor=false
-    Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Los+Angeles&sensor=false
+    Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Los%20Angeles&sensor=false
     Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Memphis&sensor=false
     Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Miami&sensor=false
     .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Milwaukee&sensor=false
-    .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Oklahoma+City&sensor=false
+    .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Oklahoma%20City&sensor=false
     .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Orlando&sensor=false
     .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Phoenix&sensor=false
     .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Portland&sensor=false
     .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Sacramento&sensor=false
-    .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Toronto&sensor=false
+    Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Toronto&sensor=false
     Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Indianapolis&sensor=false
-    Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=New+York&sensor=false
+    Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=New%20York&sensor=false
     Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Cleveland&sensor=false
-    .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Denver&sensor=false
+    Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Denver&sensor=false
     .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Philadelphia&sensor=false
-    .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=San+Antonio&sensor=false
-    .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=New+Orleans&sensor=false
-    .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Washington&sensor=false
+    .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=San%20Antonio&sensor=false
+    .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=New%20Orleans&sensor=false
+    .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Washington%20D.C.&sensor=false
     .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Charlotte&sensor=false
-    Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Minneapolis&sensor=false
-    Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Dallas&sensor=false
-    Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Salt+Lake+City&sensor=false
+    .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Minneapolis&sensor=false
+    .Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Dallas&sensor=false
+    Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=Salt%20Lake%20City&sensor=false
     
 
 
@@ -342,26 +311,7 @@ head(citiesLocation)
 
 ### Calculate the Distance between Teams based on Latitude and Longitude
 
-
-```R
-# Function to calculate distance in kilometers between two points
-# reference: http://andrew.hedges.name/experiments/haversine/
-earth.dist <- function (lon1, lat1, lon2, lat2, R)
-{
-  rad <- pi/180
-  a1 <- lat1 * rad
-  a2 <- lon1 * rad
-  b1 <- lat2 * rad
-  b2 <- lon2 * rad
-  dlon <- b2 - a2
-  dlat <- b1 - a1
-  a <- (sin(dlat/2))^2 + cos(a1) * cos(b1) * (sin(dlon/2))^2
-  c <- 2 * atan2(sqrt(a), sqrt(1 - a))
-  d <- R * c
-  real.d <- min(abs((R*2) - d), d)
-  return(real.d)
-}
-```
+Create 'distance' data frame that contains every  possible combination between two teams.
 
 
 ```R
@@ -383,8 +333,6 @@ distance<-merge(x=distance,
 names(distance)[5:6]<-c("lon2","lat2")
 ```
 
-All Combinations
-
 
 ```R
 head(distance)
@@ -392,26 +340,24 @@ head(distance)
 
 
 <table>
-<thead><tr><th scope=col>team2</th><th scope=col>team1</th><th scope=col>lon1</th><th scope=col>lat1</th><th scope=col>lon2</th><th scope=col>lat2</th><th scope=col>distanceKM</th></tr></thead>
+<thead><tr><th scope=col>team2</th><th scope=col>team1</th><th scope=col>lon1</th><th scope=col>lat1</th><th scope=col>lon2</th><th scope=col>lat2</th></tr></thead>
 <tbody>
-	<tr><td>Atlanta    </td><td>Atlanta    </td><td> -84.38798 </td><td>33.74900   </td><td>-84.38798  </td><td>33.749     </td><td>   0.000   </td></tr>
-	<tr><td>Atlanta    </td><td>New York   </td><td> -74.00594 </td><td>40.71278   </td><td>-84.38798  </td><td>33.749     </td><td>1201.665   </td></tr>
-	<tr><td>Atlanta    </td><td>Phoenix    </td><td>-112.07404 </td><td>33.44838   </td><td>-84.38798  </td><td>33.749     </td><td>2559.549   </td></tr>
-	<tr><td>Atlanta    </td><td>Denver     </td><td>-104.99025 </td><td>39.73924   </td><td>-84.38798  </td><td>33.749     </td><td>1949.539   </td></tr>
-	<tr><td>Atlanta    </td><td>San Antonio</td><td> -98.49363 </td><td>29.42412   </td><td>-84.38798  </td><td>33.749     </td><td>1420.095   </td></tr>
-	<tr><td>Atlanta    </td><td>Milwaukee  </td><td> -87.90647 </td><td>43.03890   </td><td>-84.38798  </td><td>33.749     </td><td>1078.468   </td></tr>
+	<tr><td>Atlanta    </td><td>Atlanta    </td><td> -84.38798 </td><td>33.74900   </td><td>-84.38798  </td><td>33.749     </td></tr>
+	<tr><td>Atlanta    </td><td>New York   </td><td> -74.00594 </td><td>40.71278   </td><td>-84.38798  </td><td>33.749     </td></tr>
+	<tr><td>Atlanta    </td><td>Phoenix    </td><td>-112.07404 </td><td>33.44838   </td><td>-84.38798  </td><td>33.749     </td></tr>
+	<tr><td>Atlanta    </td><td>Denver     </td><td>-104.99025 </td><td>39.73924   </td><td>-84.38798  </td><td>33.749     </td></tr>
+	<tr><td>Atlanta    </td><td>San Antonio</td><td> -98.49363 </td><td>29.42412   </td><td>-84.38798  </td><td>33.749     </td></tr>
+	<tr><td>Atlanta    </td><td>Milwaukee  </td><td> -87.90647 </td><td>43.03890   </td><td>-84.38798  </td><td>33.749     </td></tr>
 </tbody>
 </table>
 
 
 
+Calculate distance between two cities
+
 
 ```R
-result<-rep(NA,nrow(distance))
-for(i in 1:nrow(distance)){
-  result[i]<-earth.dist(distance$lon1[i],distance$lat1[i],distance$lon2[i],distance$lat2[i],R=6378.145)
-}
-distance$distanceKM<-result
+distance$distanceKM<-apply(distance[,names(distance)%in%c('lon1','lat1','lon2','lat2')],1,function(x) earth.dist(x[1],x[2],x[3],x[4],R=6378.145))
 ```
 
 
@@ -436,34 +382,11 @@ head(distance)
 
 ### Function to calculate Distance traveled by a Team during the season
 
-This function returns a data frame with flights for a specific team during the season
+The nbaFlightsByTeam function returns a data frame with flights and the distance for a specific team during the season.
 
 
 ```R
-nbaFlightsByTeam<-function(base,team){
-  aux<-base%>%
-    filter((home==team | visitor==team))%>%
-    arrange(date2)
-  
-  initial = names(tail(sort(table(aux$home_location)),1))
-  
-  flight_from = c(initial,rep(NA,nrow(aux)-1))
-  flight_to = c(rep(NA,(nrow(aux)-1)),initial)
-  d = rep(NA,nrow(aux))
-  
-  for(i in 1:(nrow(aux)-1)){
-    flight_to[i] = aux$home_location[i]
-    flight_from[i+1] = flight_to[i]
-    d[i] = distance$distance[which(distance$team1==flight_from[i] & distance$team2==flight_to[i])]
-  }
-  d[nrow(aux)] = distance$distance[which(distance$team1==flight_from[nrow(aux)] & distance$team2==flight_to[nrow(aux)])]
-  return(data.frame(flight_from,flight_to,"distance"=d))
-}
-```
-
-
-```R
-PHI_flights<-nbaFlightsByTeam(calendar,"Philadelphia 76ers")
+PHI_flights<-nbaFlightsByTeam(calendar,"Philadelphia 76ers",date=TRUE)
 ```
 
 
@@ -486,176 +409,234 @@ head(PHI_flights)
 
 
 
+
+```R
+phiFligths<-nbaFlightsByTeam(calendar,"Philadelphia 76ers",date=FALSE)%>%
+  mutate(order=1:82)%>%
+  merge(y=citiesLocation,
+        by.x=c("flight_to"),
+        by.y=c("cities"),
+        all.x=TRUE)%>%
+  rename(lon_to=lon,lat_to=lat)%>%
+  merge(y=citiesLocation,
+        by.x=c("flight_from"),
+        by.y=c("cities"),
+        all.x=TRUE)%>%
+  rename(lon_from=lon,lat_from=lat)%>%
+  arrange(order)
+
+qmap("united states", zoom = 4,maptype = "toner-lite", source = "stamen") +
+  geom_point(data=phiFligths,aes(x = lon_to, y = lat_to))+
+  geom_path(aes(x = lon_to, y = lat_to), size = .1, data = phiFligths, colour="red", lineend = "round")+
+  geom_text_repel(data = phiFligths%>%filter(flight_to!="Philadelphia") ,aes(x = lon_to, y = lat_to, label = order),
+                  fontface = 'bold', color = 'blue',
+                  box.padding = unit(0.35, "lines"),
+                  point.padding = unit(0.5, "lines"),
+                  segment.color = 'grey50')
+```
+
+    Map from URL : http://maps.googleapis.com/maps/api/staticmap?center=united+states&zoom=4&size=640x640&scale=2&maptype=terrain&sensor=false
+    Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=united%20states&sensor=false
+    Warning message:
+    "`panel.margin` is deprecated. Please use `panel.spacing` property instead"
+
+
+
+
+![png](output_34_2.png)
+
+
+
+```R
+qmap("united states", zoom = 4,maptype = "toner-lite", source = "stamen") +
+  geom_point(data=phiFligths,aes(x = lon_to, y = lat_to))+
+  geom_path(aes(x = lon_to, y = lat_to), size = 1, data = phiFligths, size=0.1, alpha = 0.8, color = "dark orange", lineend = "round")+
+  geom_text_repel(data = phiFligths%>%filter(flight_to!="Philadelphia") ,aes(x = lon_to, y = lat_to, label = order),
+                  fontface = 'bold', color = 'blue',
+                  box.padding = unit(0.35, "lines"),
+                  point.padding = unit(0.5, "lines"),
+                  segment.color = 'grey50')+
+  annotate("text",x=-72.07,y=30,label=paste(phiFligths[phiFligths$flight_to=="Philadelphia","order"][1:5],collapse=","),color="blue",fontface='bold')+
+  annotate("text",x=-72.07,y=29,label=paste(phiFligths[phiFligths$flight_to=="Philadelphia","order"][6:10],collapse=","),color="blue",fontface='bold')+
+  annotate("text",x=-72.07,y=28,label=paste(phiFligths[phiFligths$flight_to=="Philadelphia","order"][11:15],collapse=","),color="blue",fontface='bold')+
+  annotate("text",x=-72.07,y=27,label=paste(phiFligths[phiFligths$flight_to=="Philadelphia","order"][16:20],collapse=","),color="blue",fontface='bold')+
+  annotate("text",x=-72.07,y=26,label=paste(phiFligths[phiFligths$flight_to=="Philadelphia","order"][21:25],collapse=","),color="blue",fontface='bold')+
+  annotate("text",x=-72.07,y=25,label=paste(phiFligths[phiFligths$flight_to=="Philadelphia","order"][26:30],collapse=","),color="blue",fontface='bold')+
+  annotate("text",x=-72.07,y=24,label=paste(phiFligths[phiFligths$flight_to=="Philadelphia","order"][31:35],collapse=","),color="blue",fontface='bold')+
+  annotate("text",x=-72.07,y=23,label=paste(phiFligths[phiFligths$flight_to=="Philadelphia","order"][36:40],collapse=","),color="blue",fontface='bold')+
+  annotate("text",x=-72.07,y=22,label=paste(phiFligths[phiFligths$flight_to=="Philadelphia","order"][41:42],collapse=","),color="blue",fontface='bold')+
+  geom_segment(x = -72.07, y = 30.5, xend = citiesLocation$lon[citiesLocation$cities=="Philadelphia"], yend = citiesLocation$lat[citiesLocation$cities=="Philadelphia"], colour = "grey50")
+
+```
+
+    Map from URL : http://maps.googleapis.com/maps/api/staticmap?center=united+states&zoom=4&size=640x640&scale=2&maptype=terrain&sensor=false
+    Information from URL : http://maps.googleapis.com/maps/api/geocode/json?address=united%20states&sensor=false
+    Warning message:
+    "`panel.margin` is deprecated. Please use `panel.spacing` property instead"Warning message:
+    "The plyr::rename operation has created duplicates for the following name(s): (`size`)"
+
+
+
+
+![png](output_35_2.png)
+
+
 To get the total kilometers traveled by the Philadelphia 76ers during the 2015-16 regular season we just have to sum the variable distance.
 
 
 ```R
-sum(PHI_flights$distance) #75620.3841074576
+sum(PHI_flights$distance)
 ```
 
 
-75620.3841074576
+62334.6068351165
 
 
-
-```R
-lal<-nbaFlightsByTeam(calendar,"Los Angeles Lakers")
-```
+Total distance traveled by team during 2015-16 season
 
 
 ```R
-sum(lal$distance) #78106.9400997549
-```
-
-
-78106.9400997549
-
-
-
-```R
-sum(nbaFlightsByTeam(calendar,"Miami Heat")$distance)
-```
-
-
-90774.723034815
-
-
-
-```R
-teams <- unique(calendar$home)
-```
-
-
-<ol class=list-inline>
-	<li>'Atlanta Hawks'</li>
-	<li>'Chicago Bulls'</li>
-	<li>'Golden State Warriors'</li>
-	<li>'Boston Celtics'</li>
-	<li>'Brooklyn Nets'</li>
-	<li>'Detroit Pistons'</li>
-	<li>'Houston Rockets'</li>
-	<li>'Los Angeles Lakers'</li>
-	<li>'Memphis Grizzlies'</li>
-	<li>'Miami Heat'</li>
-	<li>'Milwaukee Bucks'</li>
-	<li>'Oklahoma City Thunder'</li>
-	<li>'Orlando Magic'</li>
-	<li>'Phoenix Suns'</li>
-	<li>'Portland Trail Blazers'</li>
-	<li>'Sacramento Kings'</li>
-	<li>'Toronto Raptors'</li>
-	<li>'Indiana Pacers'</li>
-	<li>'Los Angeles Clippers'</li>
-	<li>'New York Knicks'</li>
-	<li>'Cleveland Cavaliers'</li>
-	<li>'Denver Nuggets'</li>
-	<li>'Philadelphia 76ers'</li>
-	<li>'San Antonio Spurs'</li>
-	<li>'New Orleans Pelicans'</li>
-	<li>'Washington Wizards'</li>
-	<li>'Charlotte Hornets'</li>
-	<li>'Minnesota Timberwolves'</li>
-	<li>'Dallas Mavericks'</li>
-	<li>'Utah Jazz'</li>
-</ol>
-
-
-
-
-```R
+teams<-unique(calendar$home)
 total_distance_by_team<-sapply(teams,function(x) sum(nbaFlightsByTeam(calendar,x)$distance))
 ```
 
 
 ```R
-total_distance_by_team[order(total_distance_by_team,decreasing=TRUE)]
+total_distance_by_team<-as.data.frame(total_distance_by_team[order(total_distance_by_team,decreasing=TRUE)])
+total_distance_by_team$team<-rownames(total_distance_by_team)
+rownames(total_distance_by_team)<-NULL
+colnames(total_distance_by_team)<-c('distance','team')
+total_distance_by_team<-total_distance_by_team[c(2,1)]
 ```
 
 
-<dl class=dl-horizontal>
-	<dt>Washington Wizards</dt>
-		<dd>162390.79249428</dd>
-	<dt>Miami Heat</dt>
-		<dd>90774.723034815</dd>
-	<dt>Boston Celtics</dt>
-		<dd>89905.2014179597</dd>
-	<dt>Orlando Magic</dt>
-		<dd>88898.8876585554</dd>
-	<dt>Golden State Warriors</dt>
-		<dd>87413.0180373452</dd>
-	<dt>Minnesota Timberwolves</dt>
-		<dd>86649.3575392695</dd>
-	<dt>San Antonio Spurs</dt>
-		<dd>84908.7771131942</dd>
-	<dt>Portland Trail Blazers</dt>
-		<dd>84162.6407696086</dd>
-	<dt>Houston Rockets</dt>
-		<dd>82513.9601189975</dd>
-	<dt>Sacramento Kings</dt>
-		<dd>81895.3524800496</dd>
-	<dt>Memphis Grizzlies</dt>
-		<dd>80901.2596970622</dd>
-	<dt>Phoenix Suns</dt>
-		<dd>79741.6880092132</dd>
-	<dt>Dallas Mavericks</dt>
-		<dd>78689.609713861</dd>
-	<dt>Los Angeles Lakers</dt>
-		<dd>78106.9400997549</dd>
-	<dt>Oklahoma City Thunder</dt>
-		<dd>78004.532472809</dd>
-	<dt>New Orleans Pelicans</dt>
-		<dd>77235.0452195018</dd>
-	<dt>Utah Jazz</dt>
-		<dd>76250.5617452304</dd>
-	<dt>Philadelphia 76ers</dt>
-		<dd>75620.3841074576</dd>
-	<dt>Los Angeles Clippers</dt>
-		<dd>75281.2246144345</dd>
-	<dt>Atlanta Hawks</dt>
-		<dd>74646.7406899963</dd>
-	<dt>Denver Nuggets</dt>
-		<dd>74320.815159516</dd>
-	<dt>Charlotte Hornets</dt>
-		<dd>74156.5834878511</dd>
-	<dt>New York Knicks</dt>
-		<dd>73635.4347897638</dd>
-	<dt>Chicago Bulls</dt>
-		<dd>71553.1539265964</dd>
-	<dt>Toronto Raptors</dt>
-		<dd>71370.7537846694</dd>
-	<dt>Milwaukee Bucks</dt>
-		<dd>71173.3079974254</dd>
-	<dt>Brooklyn Nets</dt>
-		<dd>69089.2339753818</dd>
-	<dt>Detroit Pistons</dt>
-		<dd>68647.6981426709</dd>
-	<dt>Indiana Pacers</dt>
-		<dd>66332.2533917296</dd>
-	<dt>Cleveland Cavaliers</dt>
-		<dd>65417.5979489366</dd>
-</dl>
+```R
+options(repr.plot.width=8, repr.plot.height=4)
+ggplot(total_distance_by_team,aes(x=reorder(team,-distance),distance))+
+geom_bar(stat = "identity")+
+ theme(axis.text.x = element_text(face="bold", color="#993333", 
+                           size=8, angle=45, hjust=1))
+```
 
+
+
+
+![png](output_41_1.png)
 
 
 
 ```R
-barplot(total_distance_by_team)
+sum(total_distance_by_team$distance)
 ```
 
 
-![png](output_44_0.png)
+2149348.0629891
+
+
+### Map
+
+
+```R
+
+```
+
+### Optmize
+
+Create an new possible calendar:
+* Shuffle the calandar
+
+
+```R
+c1 <- calendar[sample(nrow(calendar),replace=FALSE),]
+```
+
+The first 10 games for Philadelphia 76ers using this new calendar would be:
+
+
+```R
+c1%>%
+select(home,visitor)%>%
+filter(home=="Philadelphia 76ers" | visitor=="Philadelphia 76ers")%>%
+head()
+```
+
+
+<table>
+<thead><tr><th scope=col>home</th><th scope=col>visitor</th></tr></thead>
+<tbody>
+	<tr><td>New York Knicks       </td><td>Philadelphia 76ers    </td></tr>
+	<tr><td>Philadelphia 76ers    </td><td>Orlando Magic         </td></tr>
+	<tr><td>Los Angeles Lakers    </td><td>Philadelphia 76ers    </td></tr>
+	<tr><td>Golden State Warriors </td><td>Philadelphia 76ers    </td></tr>
+	<tr><td>Philadelphia 76ers    </td><td>Minnesota Timberwolves</td></tr>
+	<tr><td>Philadelphia 76ers    </td><td>Toronto Raptors       </td></tr>
+</tbody>
+</table>
+
+
+
+The first game would be in Brooklyn then the next 4 games would be at home and the sixth game would be in Boston.
+
+Very different from the real calendar. The distance traveled increased.
+
+
+```R
+cat("Original Calendar:\t",
+    sum(nbaFlightsByTeam(calendar,"Philadelphia 76ers",date=FALSE)$distance),
+    "\nCandidate Calendar:\t",sum(nbaFlightsByTeam(c1,"Philadelphia 76ers",date=FALSE)$distance))
+```
+
+    Original Calendar:	 62334.61 
+    Candidate Calendar:	 88506.35
+
+Total distance traveled also increased.
+
+
+```R
+cat("Original Calendar:\t",
+    sum(sapply(teams,function(x) sum(nbaFlightsByTeam(calendar,x,date=FALSE)$distance))),
+        "\nCandidate Calendar:\t",
+        sum(sapply(teams,function(x) sum(nbaFlightsByTeam(c1,x,date=FALSE)$distance))))
+```
+
+    Original Calendar:	 2149348 
+    Candidate Calendar:	 3136225
+
+### Would be able to create a new calendar with low distance traveled.
+
+As I wrote in the begining of the post I believe it is hard to improve the original NBA calendar, but still we can try to create a new calendar with a resonable solution.
+
+
+```R
+result<-rep(NA,1000)
+for(i in 1:length(result)){
+    c_<-calendar[sample(nrow(calendar),replace=FALSE),]
+    result[i]<-sum(sapply(teams,function(x) sum(nbaFlightsByTeam(c_,x,date=FALSE)$distance)))
+}
+```
+
+
+```R
+
+hist(result,main="",xlab="Total Distance Traveled")
+```
+
+
+![png](output_57_0.png)
+
+
+As you can see, find the calendar with a low distance traveled is not an easy task. We randomly generated 1,000 calendar and the minimum result was not even close to the original calendar
+
+
+```R
+min(result)
+```
+
+
+3023598.84063154
 
 
 
 ```R
-library(plotly)
-set.seed(100)
-d <- diamonds[sample(nrow(diamonds), 1000), ]
-myPlot <- plot_ly(d, x = carat, y = price, text = paste("Clarity: ", clarity),
-        mode = "markers", color = carat, size = carat)
-embed_notebook(myPlot)
+
 ```
-
-
-<iframe src="plotlyJupyterHTML/9681c97c42dd31c3a84f7b52200601c5.html" width="100%" height="400" id="igraph" scrolling="no" seamless="seamless" frameBorder="0"> </iframe>
-
