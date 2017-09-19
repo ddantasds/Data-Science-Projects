@@ -84,8 +84,6 @@ nbaFlightsByTeam<-function(base,team,date=TRUE){
         aux<-base%>%
         filter((home==team | visitor==team))
     }
-    
-  
   
   initial = names(tail(sort(table(aux$home_location)),1))
   
@@ -101,3 +99,43 @@ nbaFlightsByTeam<-function(base,team,date=TRUE){
   d[nrow(aux)] = distance$distance[which(distance$team1==flight_from[nrow(aux)] & distance$team2==flight_to[nrow(aux)])]
   return(data.frame(flight_from,flight_to,"distance"=d))
 }
+
+
+# Function to plot Map for a team based on a calendar
+nbaRouteMap<-function(calendar,team){
+  flights<-nbaFlightsByTeam(calendar,team,date=FALSE)%>%
+    mutate(order=1:82)%>%
+    merge(y=citiesLocation,
+          by.x=c("flight_to"),
+          by.y=c("cities"),
+          all.x=TRUE)%>%
+    rename(lon_to=lon,lat_to=lat)%>%
+    merge(y=citiesLocation,
+          by.x=c("flight_from"),
+          by.y=c("cities"),
+          all.x=TRUE)%>%
+    rename(lon_from=lon,lat_from=lat)%>%
+    arrange(order)
+  
+  city = names(sort(table(flights$flight_from),decreasing = TRUE)[1])
+  
+  qmap("united states", zoom = 4,maptype = "toner-lite", source = "stamen") +
+    geom_point(data=flights,aes(x = lon_to, y = lat_to))+
+    geom_path(aes(x = lon_to, y = lat_to), size = 0.5, data = flights, alpha = 0.8, color = "#fa6900", lineend = "round")+
+    geom_text_repel(data = flights%>%filter(flight_to!=city) ,aes(x = lon_to, y = lat_to, label = order),
+                    fontface = 'bold', color = 'blue',
+                    box.padding = unit(0.35, "lines"),
+                    point.padding = unit(0.5, "lines"),
+                    segment.color = 'grey50')+
+    annotate("text",x=-72.07,y=30,label=paste(flights[flights$flight_to==city,"order"][1:5],collapse=","),color="blue",fontface='bold')+
+    annotate("text",x=-72.07,y=29,label=paste(flights[flights$flight_to==city,"order"][6:10],collapse=","),color="blue",fontface='bold')+
+    annotate("text",x=-72.07,y=28,label=paste(flights[flights$flight_to==city,"order"][11:15],collapse=","),color="blue",fontface='bold')+
+    annotate("text",x=-72.07,y=27,label=paste(flights[flights$flight_to==city,"order"][16:20],collapse=","),color="blue",fontface='bold')+
+    annotate("text",x=-72.07,y=26,label=paste(flights[flights$flight_to==city,"order"][21:25],collapse=","),color="blue",fontface='bold')+
+    annotate("text",x=-72.07,y=25,label=paste(flights[flights$flight_to==city,"order"][26:30],collapse=","),color="blue",fontface='bold')+
+    annotate("text",x=-72.07,y=24,label=paste(flights[flights$flight_to==city,"order"][31:35],collapse=","),color="blue",fontface='bold')+
+    annotate("text",x=-72.07,y=23,label=paste(flights[flights$flight_to==city,"order"][36:40],collapse=","),color="blue",fontface='bold')+
+    annotate("text",x=-72.07,y=22,label=paste(flights[flights$flight_to==city,"order"][41:42],collapse=","),color="blue",fontface='bold')
+  # geom_segment(x = -72.07, y = 30.5, xend = citiesLocation$lon[citiesLocation$cities==city], yend = citiesLocation$lat[citiesLocation$cities==city], colour = "grey50")
+}
+
