@@ -1,4 +1,4 @@
-# Applying statistical and mathematical to solve real-world problems
+# Applying statistical and mathematical techniques to solve real-world problems
 
 ### Short projects to demonstrate the use of machine learning techniques to solve real-world problems. These are personal projects from different areas of my interest.
 
