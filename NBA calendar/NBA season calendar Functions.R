@@ -8,7 +8,7 @@ library(RCurl)
 library(XML)
 library(xml2)
 library(rvest)
-
+library(ggrepel)
 
 # Function to collect NBA calendar for a specific year
 collectNBACalendar<-function(years){
@@ -138,4 +138,14 @@ nbaRouteMap<-function(calendar,team){
     annotate("text",x=-72.07,y=22,label=paste(flights[flights$flight_to==city,"order"][41:42],collapse=","),color="blue",fontface='bold')
   # geom_segment(x = -72.07, y = 30.5, xend = citiesLocation$lon[citiesLocation$cities==city], yend = citiesLocation$lat[citiesLocation$cities==city], colour = "grey50")
 }
+
+
+
+
+
+####
+
+
+
+
 
