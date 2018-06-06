@@ -137,14 +137,38 @@ dimnames(test)<-list(user_id=1:7,item_id=1:6)
 
 test[is.na(test)]<-0
 
+str(test)
+
 test<-as(test,"sparseMatrix")
 
 ratings<-new("realRatingMatrix",data=test)
+
+head(ratings@data)
 
 model1<-Recommender(ratings,method="IBCF")
 
 prediction<-predict(model1,ratings[1,],type="ratings")
 
 prediction@data
-
 ratings@data
+
+
+model_user<-Recommender(ratings,method="UBCF")
+
+
+
+ratings_t<-ratings
+ratings_t@data<-t(ratings@data)
+
+model_item1<-Recommender(ratings,method="IBCF")
+model_item2<-Recommender(ratings_t,method="UBCF",param=list(nn=30))
+
+model_item1@model
+model_item2@model
+
+pred_item1<-predict(model_item1,ratings,type="ratings")
+pred_item2<-predict(model_item2,ratings_t,type="ratings")
+
+pred_item1@data
+pred_item2@data
+
